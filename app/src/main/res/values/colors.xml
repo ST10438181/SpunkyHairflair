@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Same palette as the website (css/styles.css) -->
+    <color name="primary">#C17A5B</color>
+    <color name="primary_dark">#A05A3C</color>
+    <color name="primary_light">#F5E6DE</color>
+    <color name="secondary">#2C3E50</color>
+    <color name="accent">#E8A87C</color>
+    <color name="light">#FAF6F2</color>
+    <color name="white">#FFFFFF</color>
+    <color name="gray">#6C757D</color>
+    <color name="success">#28A745</color>
+    <color name="danger">#DC3545</color>
+    <color name="divider">#E3D6CC</color>
+</resources>

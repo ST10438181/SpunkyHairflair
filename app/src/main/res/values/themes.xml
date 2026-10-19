@@ -1,0 +1,15 @@
+<resources>
+    <style name="Theme.Spunky" parent="Theme.Material3.Light.NoActionBar">
+        <item name="colorPrimary">@color/primary</item>
+        <item name="colorOnPrimary">@color/white</item>
+        <item name="colorPrimaryContainer">@color/primary_light</item>
+        <item name="colorOnPrimaryContainer">@color/primary_dark</item>
+        <item name="colorSecondary">@color/secondary</item>
+        <item name="colorOnSecondary">@color/white</item>
+        <item name="colorSecondaryContainer">@color/primary_light</item>
+        <item name="colorOnSecondaryContainer">@color/primary_dark</item>
+        <item name="android:colorBackground">@color/light</item>
+        <item name="colorSurface">@color/white</item>
+        <item name="android:statusBarColor">@color/secondary</item>
+    </style>
+</resources>
