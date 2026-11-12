@@ -5,11 +5,14 @@ import android.os.Bundle
 import android.widget.Button
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.lifecycleScope
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
 import com.codingandcurls.spunkyshairflair.R
+import com.codingandcurls.spunkyshairflair.data.ApiResult
 import com.codingandcurls.spunkyshairflair.data.Repos
 import com.codingandcurls.spunkyshairflair.logic.Validators
+import kotlinx.coroutines.launch
 
 class LoginActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -20,8 +23,9 @@ class LoginActivity : AppCompatActivity() {
         val passwordLayout = findViewById<TextInputLayout>(R.id.passwordLayout)
         val emailInput = findViewById<TextInputEditText>(R.id.emailInput)
         val passwordInput = findViewById<TextInputEditText>(R.id.passwordInput)
+        val loginButton = findViewById<Button>(R.id.loginButton)
 
-        findViewById<Button>(R.id.loginButton).setOnClickListener {
+        loginButton.setOnClickListener {
             val email = emailInput.text.toString().trim()
             val password = passwordInput.text.toString()
 
@@ -31,14 +35,21 @@ class LoginActivity : AppCompatActivity() {
             passwordLayout.error = passwordError
             if (emailError != null || passwordError != null) return@setOnClickListener
 
-            val user = Repos.users(this).login(email, password)
-            if (user == null) {
-                passwordLayout.error = "Incorrect email or password"
-                return@setOnClickListener
+            loginButton.isEnabled = false
+            lifecycleScope.launch {
+                val result = Repos.users(this@LoginActivity).login(email, password)
+                loginButton.isEnabled = true
+                when (result) {
+                    is ApiResult.Success -> {
+                        toast("Welcome back, ${result.value.name.substringBefore(' ')}!")
+                        startActivity(clearTaskIntent(this@LoginActivity, MainActivity::class.java))
+                        finish()
+                    }
+                    is ApiResult.Failure -> {
+                        if (result.code == 0) toast(result.message) else passwordLayout.error = result.message
+                    }
+                }
             }
-            toast("Welcome back, ${user.name.substringBefore(' ')}!")
-            startActivity(clearTaskIntent(this, MainActivity::class.java))
-            finish()
         }
 
         findViewById<TextView>(R.id.registerLink).setOnClickListener {

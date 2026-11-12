@@ -5,32 +5,36 @@ import android.view.View
 import android.widget.Button
 import android.widget.TextView
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipGroup
 import com.google.android.material.progressindicator.LinearProgressIndicator
 import com.codingandcurls.spunkyshairflair.R
+import com.codingandcurls.spunkyshairflair.data.ApiResult
 import com.codingandcurls.spunkyshairflair.data.Repos
 import com.codingandcurls.spunkyshairflair.logic.BookingCalculator
 import com.codingandcurls.spunkyshairflair.logic.BookingDates
-import com.codingandcurls.spunkyshairflair.logic.SlotChecker
-import com.codingandcurls.spunkyshairflair.model.Booking
-import com.codingandcurls.spunkyshairflair.model.Catalog
 import com.codingandcurls.spunkyshairflair.model.Service
 import com.codingandcurls.spunkyshairflair.model.Stylist
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
 import java.time.LocalDate
-import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 /** Four step-through screens: 1 Service, 2 Stylist, 3 Date & Time, 4 Confirm. */
 class BookFragment : Fragment(R.layout.fragment_book) {
     private var step = 1
+    private var services: List<Service> = emptyList()
+    private var stylists: List<Stylist> = emptyList()
     private var selectedService: Service? = null
     private var selectedStylist: Stylist? = null
     private var selectedDate: LocalDate? = null
     private var selectedTime: String? = null
+    private var timesJob: Job? = null
+    private var submitting = false
 
     private lateinit var progress: LinearProgressIndicator
     private lateinit var stepLabel: TextView
@@ -44,7 +48,6 @@ class BookFragment : Fragment(R.layout.fragment_book) {
     private lateinit var summaryText: TextView
     private lateinit var backButton: Button
     private lateinit var nextButton: Button
-    private lateinit var serviceAdapter: OptionAdapter
 
     private val titles = listOf("Choose Your Service", "Choose Your Stylist", "Select Date & Time", "Booking Summary")
 
@@ -63,16 +66,8 @@ class BookFragment : Fragment(R.layout.fragment_book) {
         backButton = view.findViewById(R.id.backButton)
         nextButton = view.findViewById(R.id.nextButton)
 
-        serviceAdapter = OptionAdapter(Catalog.services.map {
-            Option(it.id, it.name, it.duration, "R${it.price}")
-        }) { option -> selectedService = Catalog.services.first { it.id == option.id } }
         serviceList.layoutManager = LinearLayoutManager(requireContext())
-        serviceList.adapter = serviceAdapter
-
         stylistList.layoutManager = LinearLayoutManager(requireContext())
-        stylistList.adapter = OptionAdapter(Catalog.stylists.map {
-            Option(it.id, it.name, it.specialty, "★ ${it.rating}")
-        }) { option -> selectedStylist = Catalog.stylists.first { it.id == option.id } }
 
         buildDateChips()
         dateGroup.setOnCheckedStateChangeListener { group, checkedIds ->
@@ -85,14 +80,44 @@ class BookFragment : Fragment(R.layout.fragment_book) {
             else group.findViewById<Chip>(checkedIds[0]).tag as String
         }
 
-        (activity as? MainActivity)?.consumePreselectedService()?.let { id ->
-            selectedService = Catalog.services.firstOrNull { it.id == id }
-            serviceAdapter.select(id)
-        }
-
         backButton.setOnClickListener { if (step > 1) showStep(step - 1) }
         nextButton.setOnClickListener { onNext() }
         showStep(1)
+        loadCatalog()
+    }
+
+    /** Fetches services and stylists from the API, then fills the first two steps. */
+    private fun loadCatalog() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            val catalog = Repos.catalog(requireContext())
+            val servicesResult = catalog.services()
+            val stylistsResult = catalog.stylists()
+            val loadedServices = (servicesResult as? ApiResult.Success)?.value
+            val loadedStylists = (stylistsResult as? ApiResult.Success)?.value
+            if (loadedServices == null || loadedStylists == null) {
+                val failure = (servicesResult as? ApiResult.Failure) ?: (stylistsResult as? ApiResult.Failure)
+                if (failure != null) toast(failure.message)
+                return@launch
+            }
+            services = loadedServices
+            stylists = loadedStylists
+
+            val serviceAdapter = OptionAdapter(services.map {
+                Option(it.id, it.name, it.duration, "R${it.price}")
+            }) { option -> selectedService = services.firstOrNull { it.id == option.id } }
+            serviceList.adapter = serviceAdapter
+
+            stylistList.adapter = OptionAdapter(stylists.map {
+                Option(it.id, it.name, it.specialty, "★ ${it.rating}")
+            }) { option -> selectedStylist = stylists.firstOrNull { it.id == option.id } }
+
+            // Coming from a service card on Home / Services: pre-select that service.
+            val preselected = (activity as? MainActivity)?.consumePreselectedService()
+            if (preselected != null) {
+                selectedService = services.firstOrNull { it.id == preselected }
+                if (selectedService != null) serviceAdapter.select(preselected)
+            }
+        }
     }
 
     private fun buildDateChips() {
@@ -106,33 +131,49 @@ class BookFragment : Fragment(R.layout.fragment_book) {
         }
     }
 
-    /** Rebuilds the time chips: past slots are hidden, slots already booked with this stylist are disabled. */
+    /**
+     * Asks the API which slots are free for the chosen stylist and date. Past slots are hidden and
+     * slots already booked are disabled, so double-booking is prevented by the server's data.
+     */
     private fun renderTimes(keep: String?) {
         selectedTime = null
+        timesJob?.cancel()
         timeGroup.removeAllViews()
         val date = selectedDate
-        if (date == null) {
+        val stylist = selectedStylist
+        if (date == null || stylist == null) {
             timeHint.text = "Pick a date to see available times"
             timeHint.visibility = View.VISIBLE
             return
         }
-        val bookings = Repos.bookings(requireContext()).getAll()
-        val now = LocalDateTime.now()
-        var added = 0
-        Catalog.timeSlots.forEach { slot ->
-            if (BookingDates.isPast(date, slot, now)) return@forEach
-            val taken = selectedStylist?.let { SlotChecker.isTaken(bookings, it.name, date.toString(), slot) } ?: false
-            val chip = layoutInflater.inflate(R.layout.item_chip_choice, timeGroup, false) as Chip
-            chip.id = View.generateViewId()
-            chip.text = if (taken) "$slot (booked)" else slot
-            chip.tag = slot
-            chip.isEnabled = !taken
-            if (slot == keep && !taken) chip.isChecked = true
-            timeGroup.addView(chip)
-            added++
+        timeHint.text = "Loading available times..."
+        timeHint.visibility = View.VISIBLE
+
+        timesJob = viewLifecycleOwner.lifecycleScope.launch {
+            when (val result = Repos.catalog(requireContext()).availability(stylist.id, date.toString())) {
+                is ApiResult.Failure -> {
+                    timeHint.text = "Couldn't load times - pick the date again to retry"
+                    toast(result.message)
+                }
+                is ApiResult.Success -> {
+                    var added = 0
+                    for (slot in result.value) {
+                        if (slot.reason == "past") continue
+                        val taken = !slot.available
+                        val chip = layoutInflater.inflate(R.layout.item_chip_choice, timeGroup, false) as Chip
+                        chip.id = View.generateViewId()
+                        chip.text = if (taken) "${slot.time} (booked)" else slot.time
+                        chip.tag = slot.time
+                        chip.isEnabled = !taken
+                        timeGroup.addView(chip)
+                        if (slot.time == keep && !taken) chip.isChecked = true
+                        added++
+                    }
+                    timeHint.text = "No slots left on this day - try another date"
+                    timeHint.visibility = if (added == 0) View.VISIBLE else View.GONE
+                }
+            }
         }
-        timeHint.text = "No slots left on this day - try another date"
-        timeHint.visibility = if (added == 0) View.VISIBLE else View.GONE
     }
 
     private fun onNext() {
@@ -180,32 +221,33 @@ class BookFragment : Fragment(R.layout.fragment_book) {
         }
     }
 
+    /** Sends the booking to the API. The server re-checks the slot, so a clash comes back as a 409. */
     private fun confirmBooking() {
-        val context = requireContext()
-        val user = Repos.users(context).getCurrentUser() ?: return
+        if (submitting) return
         val service = selectedService ?: return
         val stylist = selectedStylist ?: return
         val date = selectedDate ?: return
         val time = selectedTime ?: return
-        val repo = Repos.bookings(context)
 
-        if (SlotChecker.isTaken(repo.getAll(), stylist.name, date.toString(), time)) {
-            toast("That time was just taken - please choose another")
-            showStep(3)
-            return
+        submitting = true
+        nextButton.isEnabled = false
+        viewLifecycleOwner.lifecycleScope.launch {
+            val result = try {
+                Repos.bookings(requireContext()).add(service.id, stylist.id, date.toString(), time)
+            } finally {
+                submitting = false
+                nextButton.isEnabled = true
+            }
+            when (result) {
+                is ApiResult.Success -> {
+                    toast("Booking confirmed for ${service.name}!")
+                    (activity as? MainActivity)?.showBookings()
+                }
+                is ApiResult.Failure -> {
+                    requireContext().handleFailure(result)
+                    if (result.code == 409) showStep(3)
+                }
+            }
         }
-        repo.add(Booking(
-            id = repo.nextId(),
-            userId = user.id,
-            service = service.name,
-            price = service.price,
-            stylistName = stylist.name,
-            date = date.toString(),
-            time = time,
-            deposit = BookingCalculator.deposit(service.price),
-            status = "confirmed"
-        ))
-        toast("Booking confirmed for ${service.name}!")
-        (activity as MainActivity).showBookings()
     }
 }

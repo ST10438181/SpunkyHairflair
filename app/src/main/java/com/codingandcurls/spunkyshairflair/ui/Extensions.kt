@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.widget.Toast
 import androidx.fragment.app.Fragment
+import com.codingandcurls.spunkyshairflair.data.ApiResult
 
 fun Context.toast(message: String) {
     Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
@@ -24,3 +25,14 @@ fun Context.openExternal(intent: Intent) {
 
 fun clearTaskIntent(context: Context, target: Class<*>): Intent =
     Intent(context, target).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
+
+/**
+ * Shows an API error. A 401 means the saved login expired (or was revoked), so the user is
+ * sent back to the Login screen.
+ */
+fun Context.handleFailure(failure: ApiResult.Failure) {
+    toast(failure.message)
+    if (failure.code == 401) {
+        startActivity(clearTaskIntent(this, LoginActivity::class.java))
+    }
+}

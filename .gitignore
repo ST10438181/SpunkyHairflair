@@ -8,3 +8,8 @@
 /captures
 .externalNativeBuild
 .cxx
+# API
+__pycache__/
+*.pyc
+api/data/
+.venv/

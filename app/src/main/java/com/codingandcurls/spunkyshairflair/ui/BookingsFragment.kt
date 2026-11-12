@@ -4,13 +4,15 @@ import android.os.Bundle
 import android.view.View
 import android.widget.Button
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.codingandcurls.spunkyshairflair.R
+import com.codingandcurls.spunkyshairflair.data.ApiResult
 import com.codingandcurls.spunkyshairflair.data.Repos
 import com.codingandcurls.spunkyshairflair.model.Booking
-import com.codingandcurls.spunkyshairflair.model.Catalog
+import kotlinx.coroutines.launch
 
 class BookingsFragment : Fragment(R.layout.fragment_bookings) {
     private lateinit var list: RecyclerView
@@ -27,14 +29,19 @@ class BookingsFragment : Fragment(R.layout.fragment_bookings) {
         refresh()
     }
 
+    /** Loads this customer's bookings from the API (already sorted by date and time). */
     private fun refresh() {
-        val context = requireContext()
-        val user = Repos.users(context).getCurrentUser() ?: return
-        val items = Repos.bookings(context).getForUser(user.id)
-            .sortedWith(compareBy({ it.date }, { Catalog.timeSlots.indexOf(it.time) }))
-        list.adapter = BookingAdapter(items) { booking -> confirmCancel(booking) }
-        emptyState.visibility = if (items.isEmpty()) View.VISIBLE else View.GONE
-        list.visibility = if (items.isEmpty()) View.GONE else View.VISIBLE
+        viewLifecycleOwner.lifecycleScope.launch {
+            when (val result = Repos.bookings(requireContext()).getMine()) {
+                is ApiResult.Success -> {
+                    val items = result.value
+                    list.adapter = BookingAdapter(items) { booking -> confirmCancel(booking) }
+                    emptyState.visibility = if (items.isEmpty()) View.VISIBLE else View.GONE
+                    list.visibility = if (items.isEmpty()) View.GONE else View.VISIBLE
+                }
+                is ApiResult.Failure -> requireContext().handleFailure(result)
+            }
+        }
     }
 
     private fun confirmCancel(booking: Booking) {
@@ -42,9 +49,15 @@ class BookingsFragment : Fragment(R.layout.fragment_bookings) {
             .setTitle("Cancel appointment?")
             .setMessage("${booking.service} with ${booking.stylistName} on ${booking.date} at ${booking.time}")
             .setPositiveButton("Yes, cancel") { _, _ ->
-                Repos.bookings(requireContext()).cancel(booking.id)
-                toast("Booking cancelled successfully")
-                refresh()
+                viewLifecycleOwner.lifecycleScope.launch {
+                    when (val result = Repos.bookings(requireContext()).cancel(booking.id)) {
+                        is ApiResult.Success -> {
+                            toast("Booking cancelled successfully")
+                            refresh()
+                        }
+                        is ApiResult.Failure -> requireContext().handleFailure(result)
+                    }
+                }
             }
             .setNegativeButton("Keep it", null)
             .show()

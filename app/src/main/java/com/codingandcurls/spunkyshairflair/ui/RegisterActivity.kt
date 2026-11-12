@@ -4,11 +4,14 @@ import android.os.Bundle
 import android.widget.Button
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.lifecycleScope
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
 import com.codingandcurls.spunkyshairflair.R
+import com.codingandcurls.spunkyshairflair.data.ApiResult
 import com.codingandcurls.spunkyshairflair.data.Repos
 import com.codingandcurls.spunkyshairflair.logic.Validators
+import kotlinx.coroutines.launch
 
 class RegisterActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -25,8 +28,9 @@ class RegisterActivity : AppCompatActivity() {
         val phoneInput = findViewById<TextInputEditText>(R.id.phoneInput)
         val passwordInput = findViewById<TextInputEditText>(R.id.passwordInput)
         val confirmInput = findViewById<TextInputEditText>(R.id.confirmInput)
+        val registerButton = findViewById<Button>(R.id.registerButton)
 
-        findViewById<Button>(R.id.registerButton).setOnClickListener {
+        registerButton.setOnClickListener {
             val name = nameInput.text.toString()
             val email = emailInput.text.toString()
             val phone = phoneInput.text.toString()
@@ -43,14 +47,26 @@ class RegisterActivity : AppCompatActivity() {
                 .any { it.error != null }
             if (hasError) return@setOnClickListener
 
-            val user = Repos.users(this).register(name, email, phone, password)
-            if (user == null) {
-                emailLayout.error = "An account with this email already exists"
-                return@setOnClickListener
+            registerButton.isEnabled = false
+            lifecycleScope.launch {
+                val result = Repos.users(this@RegisterActivity).register(name, email, phone, password)
+                registerButton.isEnabled = true
+                when (result) {
+                    is ApiResult.Success -> {
+                        toast("Welcome ${result.value.name.substringBefore(' ')}! You can now book appointments.")
+                        startActivity(clearTaskIntent(this@RegisterActivity, MainActivity::class.java))
+                        finish()
+                    }
+                    is ApiResult.Failure -> {
+                        // Show the server's per-field messages (e.g. duplicate email) on the matching inputs.
+                        nameLayout.error = result.fields["name"] ?: nameLayout.error
+                        emailLayout.error = result.fields["email"] ?: emailLayout.error
+                        phoneLayout.error = result.fields["phone"] ?: phoneLayout.error
+                        passwordLayout.error = result.fields["password"] ?: passwordLayout.error
+                        if (result.fields.isEmpty()) toast(result.message)
+                    }
+                }
             }
-            toast("Welcome ${user.name.substringBefore(' ')}! You can now book appointments.")
-            startActivity(clearTaskIntent(this, MainActivity::class.java))
-            finish()
         }
 
         findViewById<TextView>(R.id.loginLink).setOnClickListener { finish() }

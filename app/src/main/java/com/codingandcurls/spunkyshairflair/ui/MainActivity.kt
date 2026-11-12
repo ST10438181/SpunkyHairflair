@@ -6,14 +6,16 @@ import android.view.Menu
 import android.view.MenuItem
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.lifecycleScope
 import com.google.android.material.appbar.MaterialToolbar
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.codingandcurls.spunkyshairflair.R
 import com.codingandcurls.spunkyshairflair.data.Repos
+import kotlinx.coroutines.launch
 
 /** Hosts the five bottom-bar tabs: Home, Book, My Bookings, Services, Contact. */
-class  MainActivity : AppCompatActivity() {
+class MainActivity : AppCompatActivity() {
     private lateinit var bottomNav: BottomNavigationView
     private var preselectedServiceId: Int? = null
 
@@ -79,9 +81,11 @@ class  MainActivity : AppCompatActivity() {
                 .setTitle("Log out?")
                 .setMessage("You will need to log in again to book appointments.")
                 .setPositiveButton("Log out") { _, _ ->
-                    Repos.users(this).logout()
-                    startActivity(clearTaskIntent(this, LoginActivity::class.java))
-                    finish()
+                    lifecycleScope.launch {
+                        Repos.users(this@MainActivity).logout()
+                        startActivity(clearTaskIntent(this@MainActivity, LoginActivity::class.java))
+                        finish()
+                    }
                 }
                 .setNegativeButton("Stay", null)
                 .show()

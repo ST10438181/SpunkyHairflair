@@ -10,14 +10,12 @@ data class Stylist(
     val reviews: Int
 )
 
-/** Passwords are never stored in plain text - only [passwordHash] + [salt]. */
+/** The signed-in customer. Passwords are hashed on the server and never reach the app. */
 data class User(
     val id: Long,
     val name: String,
     val email: String,
-    val phone: String,
-    val passwordHash: String,
-    val salt: String
+    val phone: String
 )
 
 data class Booking(
@@ -31,3 +29,6 @@ data class Booking(
     val deposit: Int,
     val status: String
 )
+
+/** One time slot for a stylist on a date. [reason] is "past", "booked" or "" when available. */
+data class SlotAvailability(val time: String, val available: Boolean, val reason: String)
