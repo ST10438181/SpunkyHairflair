@@ -16,7 +16,7 @@ import kotlinx.coroutines.launch
 class RegisterActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_register)
+        setEdgeToEdgeContentView(R.layout.activity_register, hasToolbar = false)
 
         val nameLayout = findViewById<TextInputLayout>(R.id.nameLayout)
         val emailLayout = findViewById<TextInputLayout>(R.id.emailLayout)

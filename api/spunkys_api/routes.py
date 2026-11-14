@@ -264,6 +264,20 @@ def change_password():
     return "", 204
 
 
+@api.post("/me/delete")
+@login_required
+def delete_account():
+    """Permanently deletes the account, its bookings and sessions (required by Google Play)."""
+    password = str(json_body().get("password", ""))
+    if not verify_password(password, g.user["password_hash"]):
+        return error("Password is incorrect", 400, {"password": "Password is incorrect"})
+    db = get_db()
+    # bookings and auth_tokens are removed by ON DELETE CASCADE
+    db.execute("DELETE FROM users WHERE id = ?", (g.user["id"],))
+    db.commit()
+    return "", 204
+
+
 # ----------------------------------------------------------------------------- bookings
 @api.get("/bookings")
 @login_required

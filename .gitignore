@@ -13,3 +13,8 @@ __pycache__/
 *.pyc
 api/data/
 .venv/
+
+# Release signing (secret)
+keystore.properties
+*.jks
+*.keystore

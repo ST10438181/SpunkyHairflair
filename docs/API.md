@@ -43,6 +43,7 @@ password ≥ 8 chars with a letter and a number. Passwords are hashed with salte
 | `GET /me` 🔒 | – | `200 {user}` |
 | `PUT /me` 🔒 | `{"name","phone"}` | `200 {user}` |
 | `PUT /me/password` 🔒 | `{"currentPassword","newPassword"}` | `204` (`400` if the current password is wrong) |
+| `POST /me/delete` 🔒 | `{"password"}` | `204` – permanently deletes the account, its bookings and sessions (`400` if the password is wrong) |
 
 ## Bookings (🔒)
 

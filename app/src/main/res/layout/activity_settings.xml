@@ -149,11 +149,20 @@
                 android:text="Update password" />
 
             <Button
+                android:id="@+id/deleteAccountButton"
+                style="@style/Widget.Material3.Button.TextButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="28dp"
+                android:text="Delete my account"
+                android:textColor="@color/danger" />
+
+            <Button
                 android:id="@+id/logoutButton"
                 style="@style/Widget.Material3.Button.OutlinedButton"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="28dp"
+                android:layout_marginTop="8dp"
                 android:text="Log out"
                 android:textColor="@color/danger" />
         </LinearLayout>

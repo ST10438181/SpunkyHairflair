@@ -1,23 +1,28 @@
 package com.codingandcurls.spunkyshairflair.ui
 
 import android.os.Bundle
+import android.text.InputType
 import android.view.MenuItem
 import android.widget.Button
+import android.widget.EditText
+import android.widget.FrameLayout
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.appbar.MaterialToolbar
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
 import com.codingandcurls.spunkyshairflair.R
 import com.codingandcurls.spunkyshairflair.data.ApiResult
 import com.codingandcurls.spunkyshairflair.data.Repos
+import com.codingandcurls.spunkyshairflair.data.UserRepository
 import com.codingandcurls.spunkyshairflair.logic.Validators
 import kotlinx.coroutines.launch
 
 class SettingsActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_settings)
+        setEdgeToEdgeContentView(R.layout.activity_settings, hasToolbar = true)
         setSupportActionBar(findViewById<MaterialToolbar>(R.id.toolbar))
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
         supportActionBar?.title = "Settings"
@@ -94,6 +99,10 @@ class SettingsActivity : AppCompatActivity() {
             }
         }
 
+        findViewById<Button>(R.id.deleteAccountButton).setOnClickListener {
+            confirmDeleteAccount(users)
+        }
+
         findViewById<Button>(R.id.logoutButton).setOnClickListener {
             lifecycleScope.launch {
                 users.logout()
@@ -101,6 +110,37 @@ class SettingsActivity : AppCompatActivity() {
                 finish()
             }
         }
+    }
+
+    /** Asks for the password, then deletes the account on the server and returns to the Login screen. */
+    private fun confirmDeleteAccount(users: UserRepository) {
+        val passwordInput = EditText(this)
+        passwordInput.hint = "Enter your password to confirm"
+        passwordInput.inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
+        val padding = (24 * resources.displayMetrics.density).toInt()
+        val container = FrameLayout(this)
+        container.setPadding(padding, padding / 2, padding, 0)
+        container.addView(passwordInput)
+
+        MaterialAlertDialogBuilder(this)
+            .setTitle("Delete your account?")
+            .setMessage("This permanently deletes your account and all your bookings. It cannot be undone.")
+            .setView(container)
+            .setPositiveButton("Delete") { _, _ ->
+                val password = passwordInput.text.toString()
+                lifecycleScope.launch {
+                    when (val result = users.deleteAccount(password)) {
+                        is ApiResult.Success -> {
+                            toast("Your account has been deleted")
+                            startActivity(clearTaskIntent(this@SettingsActivity, LoginActivity::class.java))
+                            finish()
+                        }
+                        is ApiResult.Failure -> handleFailure(result)
+                    }
+                }
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {

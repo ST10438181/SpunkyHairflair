@@ -10,6 +10,6 @@
         <item name="colorOnSecondaryContainer">@color/primary_dark</item>
         <item name="android:colorBackground">@color/light</item>
         <item name="colorSurface">@color/white</item>
-        <item name="android:statusBarColor">@color/secondary</item>
+        <item name="android:windowBackground">@color/light</item>
     </style>
 </resources>

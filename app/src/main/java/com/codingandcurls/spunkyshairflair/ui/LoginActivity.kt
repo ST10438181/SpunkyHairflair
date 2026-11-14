@@ -17,7 +17,7 @@ import kotlinx.coroutines.launch
 class LoginActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_login)
+        setEdgeToEdgeContentView(R.layout.activity_login, hasToolbar = false)
 
         val emailLayout = findViewById<TextInputLayout>(R.id.emailLayout)
         val passwordLayout = findViewById<TextInputLayout>(R.id.passwordLayout)

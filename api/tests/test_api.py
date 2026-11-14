@@ -161,6 +161,37 @@ class ProfileTests(ApiTestCase):
         self.assertEqual(self.client.post("/api/auth/login", json={"email": "test@example.com", "password": "Fresh2026"}).status_code, 200)
 
 
+class DeleteAccountTests(ApiTestCase):
+    def test_wrong_password_does_not_delete(self):
+        token = self.new_user_token()
+        res = self.client.post("/api/me/delete", json={"password": "Nope12345"}, headers=self.auth(token))
+        self.assertEqual(res.status_code, 400)
+        self.assertIn("password", res.get_json()["fields"])
+        self.assertEqual(self.client.get("/api/me", headers=self.auth(token)).status_code, 200)
+
+    def test_delete_removes_account_bookings_and_sessions(self):
+        token = self.new_user_token()
+        self.book(token)
+        self.assertEqual(self.client.post("/api/me/delete", json={"password": "Curls2026"}, headers=self.auth(token)).status_code, 204)
+        self.assertEqual(self.client.get("/api/me", headers=self.auth(token)).status_code, 401)
+        self.assertEqual(self.client.post("/api/auth/login", json={"email": "test@example.com", "password": "Curls2026"}).status_code, 401)
+        conn = sqlite3.connect(self.db_path)
+        self.assertEqual(conn.execute("SELECT COUNT(*) FROM users").fetchone()[0], 0)
+        self.assertEqual(conn.execute("SELECT COUNT(*) FROM bookings").fetchone()[0], 0)
+        conn.close()
+
+    def test_slot_is_free_again_and_email_can_be_reused(self):
+        token = self.new_user_token("a@example.com")
+        self.book(token)
+        self.client.post("/api/me/delete", json={"password": "Curls2026"}, headers=self.auth(token))
+        other = self.new_user_token("b@example.com")
+        self.assertEqual(self.book(other).status_code, 201)
+        self.assertEqual(self.register(email="a@example.com").status_code, 201)
+
+    def test_requires_login(self):
+        self.assertEqual(self.client.post("/api/me/delete", json={"password": "Curls2026"}).status_code, 401)
+
+
 class BookingTests(ApiTestCase):
     def test_create_and_list_booking(self):
         token = self.new_user_token()

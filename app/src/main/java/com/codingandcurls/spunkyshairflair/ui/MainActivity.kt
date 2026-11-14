@@ -26,7 +26,7 @@ class MainActivity : AppCompatActivity() {
             finish()
             return
         }
-        setContentView(R.layout.activity_main)
+        setEdgeToEdgeContentView(R.layout.activity_main, hasToolbar = true)
         setSupportActionBar(findViewById<MaterialToolbar>(R.id.toolbar))
 
         bottomNav = findViewById(R.id.bottomNav)

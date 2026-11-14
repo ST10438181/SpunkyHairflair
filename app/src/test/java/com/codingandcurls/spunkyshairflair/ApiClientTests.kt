@@ -202,6 +202,34 @@ class ApiClientTests {
         assertEquals("booked", result.value[1].reason)
     }
 
+    @Test fun deletingTheAccountClearsTheSession() = runBlocking<Unit> {
+        val session = InMemorySession()
+        session.save("tok", User(7, "Lerato Dlamini", "lerato@example.com", "0821234501"))
+        val transport = FakeTransport { HttpResponse(204, "") }
+        val users = ApiUserRepository(client(session, transport), session)
+
+        val result = users.deleteAccount("Curls2026")
+
+        assertTrue(result is ApiResult.Success)
+        assertEquals("http://api.test/api/me/delete", transport.requests.single().url)
+        assertEquals("Curls2026", JSONObject(transport.requests.single().body!!).getString("password"))
+        assertNull(session.token())
+    }
+
+    @Test fun aWrongPasswordKeepsTheAccountAndSession() = runBlocking<Unit> {
+        val session = InMemorySession()
+        session.save("tok", User(7, "Lerato Dlamini", "lerato@example.com", "0821234501"))
+        val transport = FakeTransport {
+            HttpResponse(400, """{"error":"Password is incorrect","fields":{"password":"Password is incorrect"}}""")
+        }
+        val users = ApiUserRepository(client(session, transport), session)
+
+        val failure = users.deleteAccount("wrong") as ApiResult.Failure
+
+        assertEquals(400, failure.code)
+        assertEquals("tok", session.token())
+    }
+
     @Test fun nonJsonResponseDoesNotCrash() = runBlocking<Unit> {
         val session = InMemorySession()
         val transport = FakeTransport { HttpResponse(200, "<html>proxy login page</html>") }

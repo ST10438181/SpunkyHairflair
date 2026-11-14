@@ -1,6 +1,6 @@
 # Spunky's Hairflair – Booking System (Android app + REST API + database)
 
-Team **Coding & Curls** · XISD6329 Work Integrated Learning 3B · Task 2
+Team **Coding & Curls** · XISD6329 Work Integrated Learning 3B · Tasks 2 and 3
 
 A native **Kotlin Android app** for booking appointments at Spunky's Hairflair. The app talks to a
 **Python (Flask) REST API**, which stores everything in a **relational SQLite database**.
@@ -16,7 +16,7 @@ flowchart LR
 ```
 app/    Android app (Kotlin, Gradle) - screens, API client, unit tests
 api/    REST API (Flask) - endpoints, business rules, SQL schema + seed data, tests
-docs/   API.md (endpoint reference), DATABASE.md (ERD + table design)
+docs/   API.md, DATABASE.md, DEPLOY.md (hosting), PLAY_STORE.md (publishing), RELEASE_NOTES.md, PRIVACY_POLICY.md
 .github/workflows/android-ci.yml   CI: API tests + Android unit tests + debug APK
 ```
 
@@ -25,7 +25,7 @@ There is no website source in this repository; the app mirrors the team's websit
 
 ## Run it
 
-You need: **Python 3.10+**, **Android Studio** (JDK 17 is bundled) and an Android phone with USB debugging
+You need: **Python 3.10+**, a recent **Android Studio** (if Gradle sync says the Android Gradle Plugin needs a newer Studio, use *Help ▸ Check for Updates*) and an Android phone with USB debugging
 (Task 2 requires the demo on a real phone).
 
 ### 1. Start the API
@@ -57,11 +57,11 @@ The API address is set with the `apiBaseUrl` Gradle property (must end with `/`)
 | Phone on the same Wi-Fi | `-PapiBaseUrl=http://<laptop-ip>:8080/api/` (debug builds allow plain HTTP) |
 | Hosted API | `-PapiBaseUrl=https://<your-host>/api/` (release builds require HTTPS) |
 
-### Hosting the API (optional)
+### Hosting the API (so anyone can use the app)
 
-`api/Procfile` and `requirements.txt` work on Render, Railway or Heroku-style hosts
-(`gunicorn "spunkys_api:create_app()"`). On first start the API creates the database and demo data by itself.
-Free tiers often reset the disk on restart, which simply re-creates the demo data.
+For other people to use the app, the API must be on the internet. `docs/DEPLOY.md` walks through hosting it on
+PythonAnywhere's free plan (HTTPS address, database kept between restarts). Then set
+`apiBaseUrl=https://<username>.pythonanywhere.com/api/` and `releaseApiBaseUrl=...` in `gradle.properties` and rebuild.
 Environment variables: `SPUNKYS_DB` (database file path), `SPUNKYS_PBKDF2_ITERATIONS`, `SPUNKYS_TOKEN_TTL_DAYS`.
 
 ## Tests
@@ -82,11 +82,28 @@ GitHub Actions (`.github/workflows/android-ci.yml`) runs both test suites and bu
 | Book (4 steps) | `BookFragment` | `GET /availability`, `POST /bookings` |
 | My Bookings | `BookingsFragment` | `GET /bookings`, `DELETE /bookings/{id}` |
 | Contact, Help | `ContactFragment`, `HelpActivity` | static content |
-| Settings (menu ⋮) | `SettingsActivity` | `PUT /me`, `PUT /me/password`, `POST /auth/logout` |
+| Settings (menu ⋮) | `SettingsActivity` | `PUT /me`, `PUT /me/password`, `POST /me/delete`, `POST /auth/logout` |
 
 App code layout: `model/` data classes · `logic/` validators and booking maths (pure Kotlin, unit tested) ·
 `data/` API client + repositories + session storage · `ui/` activities, fragments, adapters.
 The screens only use the repository interfaces in `data/Repositories.kt`.
+
+## GitHub Actions
+
+`.github/workflows/android-ci.yml` runs on every push and pull request:
+
+1. **API tests** – installs Python, runs the 38 API and database tests.
+2. **Android** – installs JDK 17 and the Android SDK, runs the unit tests, builds the debug APK and the release
+   bundle (`.aab`), and uploads both as downloadable artifacts. If a step fails, the test reports are uploaded too.
+
+## Publishing to Google Play
+
+The app targets Android 16 (API 36), builds a signed Android App Bundle and has an in-app "Delete my account"
+as Google Play requires. Follow `docs/PLAY_STORE.md`; the privacy policy template is in `docs/PRIVACY_POLICY.md`.
+
+## Release notes
+
+See [`docs/RELEASE_NOTES.md`](docs/RELEASE_NOTES.md) for everything that changed since the prototype.
 
 ## Task 2 checklist
 
@@ -94,13 +111,14 @@ The screens only use the repository interfaces in `data/Repositories.kt`.
 |---|---|
 | Android app code, GUI, input controls, program modules | Done |
 | Register / sign in with hashed passwords | Done – server-side salted PBKDF2-HMAC-SHA256, bearer-token sessions |
-| User can change their settings | Done – Settings screen → `PUT /me`, `/me/password` |
+| User can change their settings | Done – Settings screen → `PUT /me`, `/me/password`, delete account → `POST /me/delete` |
 | Help / user support | Done – Help screen |
 | Invalid input handled without crashing | Done – validation in the app **and** the API; network errors shown as messages |
 | REST API | Done – `api/`, documented in `docs/API.md`, tested |
 | App integrated with the API | Done – `data/ApiClient.kt`, `data/ApiRepositories.kt` |
 | Database design | Done – `api/db/schema.sql`, `docs/DATABASE.md` (5 tables, FKs, constraints, 10+ sample rows) |
 | Automated tests + GitHub Actions | Done |
+| Ready for Google Play (task 3) | Done – API 36, signed bundle build, privacy policy, store checklist |
 | Single sign-on (SSO) | Not implemented (needs an external identity provider) |
 | Azure DevOps updates, demo video with voice-over | Team |
 
