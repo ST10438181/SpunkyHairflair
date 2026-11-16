@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Home | Spunky's Hairflair</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body data-page="home">
+    <div id="site-nav"></div>
+
+    <section class="hero" id="heroSection">
+        <div class="hero-content">
+            <div class="hero-badge">✨ Premium Hair Salon ✨</div>
+            <h1>Where Your Hair<br><span class="hero-highlight">Tells a Story</span></h1>
+            <p>Experience luxury hair care with our expert stylists. Book your appointment today and leave feeling fabulous.</p>
+            <div class="hero-stats">
+                <div class="stat"><span>500+</span> Happy Clients</div>
+                <div class="stat"><span>4.9</span> ★ Rating</div>
+                <div class="stat"><span>8+</span> Years Experience</div>
+            </div>
+            <a class="btn-primary-hero" href="book.html" style="text-decoration:none;display:inline-block"><i class="fas fa-arrow-right"></i> Book Your Appointment</a>
+        </div>
+        <div class="hero-image"><div class="hero-image-circle"><i class="fas fa-crown"></i></div></div>
+    </section>
+
+    <main class="main-container">
+        <p id="welcomeMsg" class="welcome-msg" style="display:none"></p>
+            <div id="loginBanner" class="login-banner">
+                <div class="banner-content">
+                    <i class="fas fa-lock"></i>
+                    <p>Please log in to book appointments and manage your bookings</p>
+                    <button class="btn-login" onclick="showAuthModal()">Login / Register <i class="fas fa-arrow-right"></i></button>
+                </div>
+            </div>
+
+        <div class="booking-card">
+            <h3><i class="fas fa-spa"></i> Choose Your Service</h3>
+            <div class="services-grid" id="servicePreview"></div>
+        </div>
+        <div class="booking-card">
+            <h3><i class="fas fa-user-tie"></i> Meet Our Stylists</h3>
+            <div class="stylists-grid" id="stylistPreview"></div>
+        </div>
+    </main>
+
+    <div id="site-footer"></div>
+    <script src="js/data.js"></script>
+    <script src="js/common.js"></script>
+    <script src="js/services.js"></script>
+</body>
+</html>

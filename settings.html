@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings | Spunky's Hairflair</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body data-page="settings">
+    <div id="site-nav"></div>
+
+    <main class="main-container">
+            <div class="page-header">
+                <h2><i class="fas fa-gear"></i> Settings</h2>
+                <p>Manage your account</p>
+            </div>
+            <div id="settingsLocked" class="empty-state" style="display:none">
+                <i class="fas fa-lock"></i><h3>Please log in</h3><p>Log in to change your settings</p>
+                <button class="btn-primary" onclick="showAuthModal()">Login / Register</button>
+            </div>
+            <div id="settingsForm" style="display:none">
+                <div class="booking-card settings-card">
+                    <h3><i class="fas fa-user"></i> Profile</h3>
+                    <div class="input-group"><i class="fas fa-user"></i><input type="text" id="setName" placeholder="Full Name"></div>
+                    <div class="field-error" id="errSetName"></div>
+                    <div class="input-group"><i class="fas fa-envelope"></i><input type="email" id="setEmail" disabled></div>
+                    <div class="input-group"><i class="fas fa-phone"></i><input type="tel" id="setPhone" placeholder="Phone Number"></div>
+                    <div class="field-error" id="errSetPhone"></div>
+                    <button class="btn-register" onclick="saveProfile()">Save Changes</button>
+                </div>
+                <div class="booking-card settings-card">
+                    <h3><i class="fas fa-key"></i> Change Password</h3>
+                    <div class="input-group"><i class="fas fa-lock"></i><input type="password" id="setCurrent" placeholder="Current Password" autocomplete="current-password"></div>
+                    <div class="field-error" id="errSetCurrent"></div>
+                    <div class="input-group"><i class="fas fa-lock"></i><input type="password" id="setNew" placeholder="New Password" autocomplete="new-password"></div>
+                    <div class="field-error" id="errSetNew"></div>
+                    <div class="input-group"><i class="fas fa-lock"></i><input type="password" id="setConfirm" placeholder="Confirm New Password" autocomplete="new-password"></div>
+                    <div class="field-error" id="errSetConfirm"></div>
+                    <button class="btn-register" onclick="changePassword()">Update Password</button>
+                </div>
+                <div class="booking-card settings-card">
+                    <h3><i class="fas fa-right-from-bracket"></i> Session</h3>
+                    <button class="btn-cancel" onclick="logout()">Log Out</button>
+                </div>
+            </div>
+    </main>
+
+    <div id="site-footer"></div>
+    <script src="js/data.js"></script>
+    <script src="js/common.js"></script>
+    <script src="js/settings.js"></script>
+</body>
+</html>
